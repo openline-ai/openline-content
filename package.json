@@ -1,0 +1,27 @@
+{
+  "name": "company-scraper",
+  "version": "1.0.0",
+  "description": "get business data from website",
+  "main": "src/app.ts",
+  "repository": "https://github.com/mattbr0wn/company-scraper.git",
+  "author": "Matt Brown <matt@openline.ai>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/cheerio": "^0.22.31",
+    "@types/node": "^20.0.0",
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.0.3",
+    "openai": "^3.2.1",
+    "typescript": "^5.0.4"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./bin/app.js",
+    "dev": "ts-node ./src/app.ts"
+  }
+}
