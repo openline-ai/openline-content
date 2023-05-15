@@ -39,7 +39,6 @@ exports.run = void 0;
 const cheerio_1 = __importDefault(require("cheerio"));
 const axios_1 = __importDefault(require("axios"));
 const dotenv = __importStar(require("dotenv"));
-const openai_1 = require("openai");
 dotenv.config();
 function getCommandLineArgs() {
     const args = process.argv.slice(2);
@@ -61,35 +60,37 @@ function fetchHTML(url) {
         }
     });
 }
+function getTextFromElement(element) {
+    const text = element.contents().map((_, el) => {
+        var _a;
+        if (el.type === 'text') {
+            return ((_a = el.data) === null || _a === void 0 ? void 0 : _a.trim()) || '';
+        }
+        else if (el.type === 'tag' && el.name === 'br') {
+            return '\n';
+        }
+        else {
+            return '';
+        }
+    }).get().join('');
+    return text.trim();
+}
 function extractRelevantText(html) {
     return __awaiter(this, void 0, void 0, function* () {
         const $ = cheerio_1.default.load(html);
         // Remove script and style tags
         $('script, style').remove();
-        // Extract text from all leaf nodes (elements with no child elements)
-        const leafNodes = $('*:not(:has(*))');
+        // Extract text from relevant elements
+        const relevantElements = $('body').find('p, h1, h2, h3, h4, h5, h6, li');
         const texts = [];
-        leafNodes.each((_, element) => {
-            const text = $(element).text().trim();
+        relevantElements.each((_, element) => {
+            const text = getTextFromElement($(element));
             if (text.length > 0 && !texts.includes(text)) {
                 texts.push(text);
             }
         });
-        const clean = texts.join(' ');
-        const configuration = new openai_1.Configuration({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
-        const openaiClient = new openai_1.OpenAIApi(configuration);
-        const prompt = `The text below is an article scraped off a website. Please cleanup the article so only the text remains.
-
-  ${clean}`;
-        const response = yield openaiClient.createCompletion({
-            model: 'text-davinci-003',
-            prompt,
-            max_tokens: 2000,
-            temperature: 0.3,
-        });
-        return response;
+        const cleanText = texts.join('\n');
+        return cleanText;
     });
 }
 const run = () => __awaiter(void 0, void 0, void 0, function* () {

@@ -1,7 +1,6 @@
 import cheerio from 'cheerio';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
-import { OpenAIApi, Configuration } from 'openai';
 
 dotenv.config();
 
@@ -26,25 +25,39 @@ async function fetchHTML(url: string): Promise<string> {
   }
 }
 
-async function extractRelevantText(html: string): Promise<any> {
+function getTextFromElement(element: cheerio.Cheerio): string {
+  const text = element.contents().map((_, el) => {
+    if (el.type === 'text') {
+      return el.data?.trim() || '';
+    } else if (el.type === 'tag' && el.name === 'br') {
+      return '\n';
+    } else {
+      return '';
+    }
+  }).get().join('');
+
+  return text.trim();
+}
+
+async function extractRelevantText(html: string): Promise<string> {
   const $ = cheerio.load(html);
 
   // Remove script and style tags
   $('script, style').remove();
 
-  // Extract text from all leaf nodes (elements with no child elements)
-  const leafNodes = $('*:not(:has(*))');
+  // Extract text from relevant elements
+  const relevantElements = $('body').find('p, h1, h2, h3, h4, h5, h6, li');
   const texts: string[] = [];
 
-  leafNodes.each((_, element) => {
-    const text = $(element).text().trim();
+  relevantElements.each((_, element) => {
+    const text = getTextFromElement($(element));
     if (text.length > 0 && !texts.includes(text)) {
       texts.push(text);
     }
   });
 
-  const clean = texts.join(' ');
-  return clean
+  const cleanText = texts.join('\n');
+  return cleanText;
 }
 
 export const run = async () => {
