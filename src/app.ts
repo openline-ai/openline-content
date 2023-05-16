@@ -1,29 +1,63 @@
-import { create } from 'domain';
 import { DocumentObject, embedDocs, queryEmbeddings } from './indexDocs.js';
 import { fetchHTML, extractRelevantText } from './scrapeText.js'
 import * as dotenv from 'dotenv';
+import Airtable from 'airtable';
 
 dotenv.config();
+const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID!);
 
-function getCommandLineArgs(): { url: string } {
+function getCommandLineArgs(): { embed: boolean; query: boolean; url?: string } {
   const args = process.argv.slice(2);
+  const flags = { embed: false, query: false };
 
-  if (args.length !== 1) {
-    console.error('Usage: ts-node index.ts <URL>');
-    process.exit(1);
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--embed') flags.embed = true;
+    else if (args[i] === '--query') flags.query = true;
   }
 
-  return { url: args[0] };
+  return flags;
 }
 
-export const createEmbeddings = async () => {
-  const { url } = getCommandLineArgs();
+const fetchAirtableRecords = async () => {
+  const records = await base('source').select({
+    filterByFormula: "AND({Type} = 'Article', NOT(Vectorized))",
+  }).firstPage();
+  return records;
+};
+
+export const createEmbeddings = async (url: string) => {
   const html = await fetchHTML(url);
   const documents: DocumentObject = await extractRelevantText(url, html);
-  //console.log(documents)
   await embedDocs([documents]);
 };
 
-//createEmbeddings().catch((error) => console.error(`Error: ${error.message}`));
+const main = async () => {
+  const { embed, query } = getCommandLineArgs();
 
-queryEmbeddings('What is customer success?  Write me a 3 paragraph article.', 5)
+  if (embed) {
+    const records = await fetchAirtableRecords();
+    console.log(records)
+    for (const record of records) {
+      const source = record.get('Source');
+      if (typeof source === 'string') {
+        await createEmbeddings(source);
+        console.log('Creating embeddings for', source)
+        const recordId = record.id;
+        if (recordId) {
+          await base('source').update(recordId, { 'Vectorized': true });
+        } else {
+          console.error(`Record with source ${source} does not have an id.`);
+        }
+      } else {
+        console.error(`Record with id ${record.id} does not have a source.`);
+      }
+    }
+  } else if (query) {
+    // We'll implement this later
+  } else {
+    console.error('Usage: yarn start [--embed] [--query]');
+    process.exit(1);
+  }
+};
+
+main().catch((error) => console.error(`Error: ${error.message}`));

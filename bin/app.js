@@ -7,24 +7,63 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { embedDocs, queryEmbeddings } from './indexDocs.js';
+import { embedDocs } from './indexDocs.js';
 import { fetchHTML, extractRelevantText } from './scrapeText.js';
 import * as dotenv from 'dotenv';
+import Airtable from 'airtable';
 dotenv.config();
+const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID);
 function getCommandLineArgs() {
     const args = process.argv.slice(2);
-    if (args.length !== 1) {
-        console.error('Usage: ts-node index.ts <URL>');
-        process.exit(1);
+    const flags = { embed: false, query: false };
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--embed')
+            flags.embed = true;
+        else if (args[i] === '--query')
+            flags.query = true;
     }
-    return { url: args[0] };
+    return flags;
 }
-export const createEmbeddings = () => __awaiter(void 0, void 0, void 0, function* () {
-    const { url } = getCommandLineArgs();
+const fetchAirtableRecords = () => __awaiter(void 0, void 0, void 0, function* () {
+    const records = yield base('source').select({
+        filterByFormula: "AND({Type} = 'Article', NOT(Vectorized))",
+    }).firstPage();
+    return records;
+});
+export const createEmbeddings = (url) => __awaiter(void 0, void 0, void 0, function* () {
     const html = yield fetchHTML(url);
     const documents = yield extractRelevantText(url, html);
-    //console.log(documents)
     yield embedDocs([documents]);
 });
-//createEmbeddings().catch((error) => console.error(`Error: ${error.message}`));
-queryEmbeddings('What is customer success?  Write me a 3 paragraph article.', 5);
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { embed, query } = getCommandLineArgs();
+    if (embed) {
+        const records = yield fetchAirtableRecords();
+        console.log(records);
+        for (const record of records) {
+            const source = record.get('Source');
+            if (typeof source === 'string') {
+                yield createEmbeddings(source);
+                console.log('Creating embeddings for', source);
+                const recordId = record.id;
+                if (recordId) {
+                    yield base('source').update(recordId, { 'Vectorized': true });
+                }
+                else {
+                    console.error(`Record with source ${source} does not have an id.`);
+                }
+            }
+            else {
+                console.error(`Record with id ${record.id} does not have a source.`);
+            }
+        }
+    }
+    else if (query) {
+        // We'll implement this later
+    }
+    else {
+        console.error('Usage: yarn start [--embed] [--query]');
+        process.exit(1);
+    }
+});
+main().catch((error) => console.error(`Error: ${error.message}`));
