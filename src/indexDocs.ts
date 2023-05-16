@@ -5,6 +5,8 @@ import { OpenAI } from "langchain/llms/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { VectorDBQAChain } from "langchain/chains";
+import { ChatOpenAI } from "langchain/chat_models/openai";
+
 
 dotenv.config();
 
@@ -48,7 +50,7 @@ export async function queryEmbeddings(query: string, count: number): Promise<voi
     });
   
     /* Use as part of a chain (currently no metadata filters) */
-    const model = new OpenAI();
+    const model = new ChatOpenAI({ modelName: "gpt-3.5-turbo" });
     const chain = VectorDBQAChain.fromLLM(model, vectorStore, {
       k: count,
       returnSourceDocuments: true,
@@ -58,6 +60,7 @@ export async function queryEmbeddings(query: string, count: number): Promise<voi
     const text = response.text;
     const metadata = response.sourceDocuments.map((document: any) => document.metadata);
   
+    console.log('')
     console.log(text);
     console.log(metadata)
 }

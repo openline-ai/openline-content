@@ -10,10 +10,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { PineconeClient } from "@pinecone-database/pinecone";
 import * as dotenv from "dotenv";
 import { Document } from "langchain/document";
-import { OpenAI } from "langchain/llms/openai";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { VectorDBQAChain } from "langchain/chains";
+import { ChatOpenAI } from "langchain/chat_models/openai";
 dotenv.config();
 export function embedDocs(documents) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -48,7 +48,7 @@ export function queryEmbeddings(query, count) {
             pineconeIndex,
         });
         /* Use as part of a chain (currently no metadata filters) */
-        const model = new OpenAI();
+        const model = new ChatOpenAI({ modelName: "gpt-3.5-turbo" });
         const chain = VectorDBQAChain.fromLLM(model, vectorStore, {
             k: count,
             returnSourceDocuments: true,
@@ -56,6 +56,7 @@ export function queryEmbeddings(query, count) {
         const response = yield chain.call({ query: query });
         const text = response.text;
         const metadata = response.sourceDocuments.map((document) => document.metadata);
+        console.log('');
         console.log(text);
         console.log(metadata);
     });
