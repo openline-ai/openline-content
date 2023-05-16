@@ -64,7 +64,7 @@ const main = async () => {
 
     rl.question('Enter your query: ', async (queryText) => {
       rl.close();
-      const count = 5; // You can adjust the count as per your requirement
+      const count = 10; // You can adjust the count as per your requirement
       await queryEmbeddings(queryText, count);
     });
   } else {
