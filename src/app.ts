@@ -40,7 +40,22 @@ const main = async () => {
   const { embed, query } = getCommandLineArgs();
 
   if (embed) {
-    // ...
+    const records = await fetchAirtableRecords();
+    for (const record of records) {
+      const source = record.get('Source');
+      if (typeof source === 'string') {
+        await createEmbeddings(source);
+        console.log('Creating embeddings for', source)
+        const recordId = record.id;
+        if (recordId) {
+          await base('source').update(recordId, { 'Vectorized': true });
+        } else {
+          console.error(`Record with source ${source} does not have an id.`);
+        }
+      } else {
+        console.error(`Record with id ${record.id} does not have a source.`);
+      }
+    }
   } else if (query) {
     const rl = readline.createInterface({
       input: process.stdin,

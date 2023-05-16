@@ -42,7 +42,24 @@ export const createEmbeddings = (url) => __awaiter(void 0, void 0, void 0, funct
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const { embed, query } = getCommandLineArgs();
     if (embed) {
-        // ...
+        const records = yield fetchAirtableRecords();
+        for (const record of records) {
+            const source = record.get('Source');
+            if (typeof source === 'string') {
+                yield createEmbeddings(source);
+                console.log('Creating embeddings for', source);
+                const recordId = record.id;
+                if (recordId) {
+                    yield base('source').update(recordId, { 'Vectorized': true });
+                }
+                else {
+                    console.error(`Record with source ${source} does not have an id.`);
+                }
+            }
+            else {
+                console.error(`Record with id ${record.id} does not have a source.`);
+            }
+        }
     }
     else if (query) {
         const rl = readline.createInterface({
