@@ -20,7 +20,8 @@ export const createEmbeddings = async () => {
   const { url } = getCommandLineArgs();
   const html = await fetchHTML(url);
   const documents: DocumentObject = await extractRelevantText(url, html);
-  await embedDocs([documents]);
+  console.log(documents)
+  //await embedDocs([documents]);
 };
 
 createEmbeddings().catch((error) => console.error(`Error: ${error.message}`));

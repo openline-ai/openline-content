@@ -7,7 +7,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { embedDocs } from './indexDocs.js';
 import { fetchHTML, extractRelevantText } from './scrapeText.js';
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -23,7 +22,8 @@ export const createEmbeddings = () => __awaiter(void 0, void 0, void 0, function
     const { url } = getCommandLineArgs();
     const html = yield fetchHTML(url);
     const documents = yield extractRelevantText(url, html);
-    yield embedDocs([documents]);
+    console.log(documents);
+    //await embedDocs([documents]);
 });
 createEmbeddings().catch((error) => console.error(`Error: ${error.message}`));
 //queryEmbeddings('What are customer success plans?', 5)
