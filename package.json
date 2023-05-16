@@ -6,7 +6,9 @@
   "repository": "https://github.com/mattbr0wn/company-scraper.git",
   "author": "Matt Brown <matt@openline.ai>",
   "license": "MIT",
+  "type": "module",
   "dependencies": {
+    "@pinecone-database/pinecone": "^0.1.5",
     "@types/axios": "^0.14.0",
     "@types/cheerio": "^0.22.31",
     "@types/node": "^20.0.0",
