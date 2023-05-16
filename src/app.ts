@@ -28,6 +28,7 @@ const fetchAirtableRecords = async () => {
 export const createEmbeddings = async (url: string) => {
   const html = await fetchHTML(url);
   const documents: DocumentObject = await extractRelevantText(url, html);
+  
   await embedDocs([documents]);
 };
 
@@ -36,7 +37,6 @@ const main = async () => {
 
   if (embed) {
     const records = await fetchAirtableRecords();
-    console.log(records)
     for (const record of records) {
       const source = record.get('Source');
       if (typeof source === 'string') {
