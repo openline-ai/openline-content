@@ -55,9 +55,10 @@ export function queryEmbeddings(query, count) {
         });
         const response = yield chain.call({ query: query });
         const text = response.text;
-        const metadata = response.sourceDocuments.map((document) => document.metadata);
+        // Filter out duplicate URLs
+        const uniqueUrls = [...new Set(response.sourceDocuments.map((document) => document.metadata.sourceUrl))];
         console.log('');
         console.log(text);
-        console.log(metadata);
+        console.log(uniqueUrls);
     });
 }
