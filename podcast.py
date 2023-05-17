@@ -1,4 +1,9 @@
 from pydub import AudioSegment
+from dotenv import load_dotenv
+import requests
+import os
+
+load_dotenv()
 
 def podcastIntro(speaker1_file, speaker2_file, music_file, output_file):
     # Load audio files
@@ -56,5 +61,53 @@ def podcastIntro(speaker1_file, speaker2_file, music_file, output_file):
     final_output.export(output_file, format='mp3')
 
 
+def getSegment(voice, text, segmentName, date):
+    key = os.getenv('ELEVENLABS_API_KEY')
+    print(key)
+    
+    if voice.lower() == 'tim':
+        voiceId = 'H6F60YFlaaeFViBgQeVH'
+        stability = 0.3
+        clarity = 0.5
+    elif voice.lower() == 'elli':
+        voiceId = 'MF3mGyEYCl7XYWbV9V6O'
+        stability = 0.3
+        clarity = 0.5
+    else:
+        print("Error: Invalid voice")
+        return
+    
+    CHUNK_SIZE = 1024
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voiceId}/stream"
+
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": key
+    }
+
+    data = {
+        "text": text,
+        "model_id": "eleven_monolingual_v1",
+        "voice_settings": {
+            "stability": stability,
+            "similarity_boost": clarity
+        }
+    }
+
+    response = requests.post(url, json=data, headers=headers, stream=True)
+    response.raise_for_status()
+
+    directory = f'podcasts/{date}'
+    os.makedirs(directory, exist_ok=True)  # create directory if it does not exist
+
+    output = f'{directory}/{segmentName}.mp3'
+    with open(output, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+            if chunk:
+                f.write(chunk)
+
+text = "...It's Friday, 19th of May--and this is The Customer Daily."
+getSegment('elli', text, 'date-intro-elli', '19052023')
 # Usage
-podcastIntro('podcasts/test/day.mp3', 'podcasts/test/intro.mp3', 'podcasts/test/intro-music.mp3', 'podcasts/test/output.mp3')
+# podcastIntro('podcasts/test/day.mp3', 'podcasts/test/intro.mp3', 'podcasts/test/intro-music.mp3', 'podcasts/test/output.mp3')
