@@ -1,0 +1,32 @@
+segments:
+  - speaker: tim
+    segment_name: date  ## DO NOT CHANGE
+    script: "...It's Friday, the 19th of May--and this is The Customer Daily"
+    
+  - speaker: elli
+    segment_name: intro  ## DO NOT CHANGE
+    script: "Welcome to The Customer Daily--you're ticket to mastering the dynamic world of Customer Success.
+    Our bite-sized episodes are packed with everything you need to stay ahead of the curve."
+    
+  - speaker: elli
+    segment_name: top-stories   ## DO NOT CHANGE
+    script: "Today's top stories:
+    How to build meaningful customer relationships.
+    2023 the year of Customer Success and gross churn.
+    Nick Mehta with the BLATENT humble brag.
+    But first, we're going to talk about the limits of customer love."
+    
+  - speaker: tim
+    segment_name: tim-1
+    script: In today's top story--Maybe customer love isn't everything it's cracked up to be.
+
+  - speaker: elli
+    segment_name: elli-1
+    script: 2023 is officially dubbed as the year of Customer Success.  Companies that can retain their customers are winning.
+
+  - speaker: tim
+    segment_name: outro  ## DO NOT CHANGE
+    script: "And that's a wrap on today's journey into the world of Customer Success.
+    We'd like to thank our sponsors at CustomerOS by Openline.  Do yourself a favor and check them out at openline dot A I.
+    Until tomorrow, stay classy."
+    

@@ -3,14 +3,31 @@ from dotenv import load_dotenv
 import requests
 import os
 import argparse
+import yaml
 
 load_dotenv()
 
-def generate_segment():
-    voice = input('Which voice? (Tim or Elli): ')
-    segment_name = input('Segment name: ')
-    date = input('Episode date: ')
-    text = input('Enter the script: ')
+def read_segments_from_yaml(file_path):
+    with open(file_path, 'r') as f:
+        segments_data = yaml.safe_load(f)
+
+    segments = []
+    for segment_data in segments_data['segments']:
+        speaker = segment_data['speaker']
+        segment_name = segment_data['segment_name']
+        script = segment_data['script']
+        back_to_back = segment_data.get('back_to_back', False)
+
+        segments.append({
+            'speaker': speaker,
+            'segment_name': segment_name,
+            'script': script,
+            'back_to_back': back_to_back
+        })
+
+    return segments
+
+def generate_segment(voice, segment_name, script, date):
     
     key = os.getenv('ELEVENLABS_API_KEY')
     
@@ -36,7 +53,7 @@ def generate_segment():
     }
 
     data = {
-        "text": text,
+        "text": script,
         "model_id": "eleven_monolingual_v1",
         "voice_settings": {
             "stability": stability,
@@ -55,11 +72,12 @@ def generate_segment():
         for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
             if chunk:
                 f.write(chunk)
+    print('Generated', output)
 
-def produce_intro(speaker1_file, speaker2_file, music_file, episode_date):
+def produce_intro(date_file, intro_file, top_stories_file, music_file, episode_date):
     # Load audio files
-    speaker1 = AudioSegment.from_file(speaker1_file)
-    speaker2 = AudioSegment.from_file(speaker2_file)
+    speaker1 = AudioSegment.from_file(date_file)
+    speaker2 = AudioSegment.from_file(intro_file) + AudioSegment.from_file(top_stories_file)
     music = AudioSegment.from_file(music_file)
 
     # Create 10 seconds and 1.5 seconds pauses
@@ -201,7 +219,7 @@ def produce_segments(segment_files, transition_music_file, date):
     output_file = f'podcasts/{date}/episode/segments.mp3'
     final_output.export(output_file, format='mp3')
     print('Generated', output_file)
-    return output_file
+    return(output_file)
 
 def combine_audio_files(intro_file, segments_file, outro_file, date):
     # Load the audio files
@@ -220,31 +238,56 @@ def combine_audio_files(intro_file, segments_file, outro_file, date):
     normalized_audio.export(output_file, format='mp3')
     print('Generated', output_file)
 
-def produce_episode():
-    date = input('Episode date: ')
+def generate_episode(date, rerun = False, rerun_segment = None):
     directory = f'podcasts/{date}'
     episode = directory + '/episode'
     os.makedirs(episode, exist_ok=True)  # create directory if it does not exist
 
     theme_music = 'podcasts/the-customer-daily-theme-music.mp3'
     transition = 'podcasts/the-customer-daily-transition-music.wav'
-    segments = [directory + '/tim-1.mp3', directory + '/elli-1.mp3', directory + '/tim-2.mp3', directory + '/elli-2.mp3']
 
-    intro_file = produce_intro(f'{directory}/date-intro.mp3', f'{directory}/elli-intro.mp3', theme_music, date)
-    segments_file = produce_segments(segments, transition, date)
-    outro_file = produce_outro(directory + '/tim-outro.mp3', theme_music, date)
+    segments = read_segments_from_yaml(f'podcasts/{date}/script.yaml')
 
-    combine_audio_files(intro_file, segments_file, outro_file, date)
+    # Generate the segment files and create the list of segment files
+    segment_files = []
+    if rerun == False:
+        for segment in segments:
+            generate_segment(segment["speaker"], segment["segment_name"], segment["script"], date)
+            segment_files.append(segment['segment_name'] + '.mp3')
+    else:
+        for segment in segments:
+            if segment["segment_name"] == rerun_segment:
+                generate_segment(segment["speaker"], segment["segment_name"], segment["script"], date)
+                segment_files.append(segment['segment_name'] + '.mp3')
+    
+def produce_episode(date):
+    segment_list = []
+    all_segments = read_segments_from_yaml(f'podcasts/{date}/script.yaml')
+    for segment in all_segments:
+        segment_name = segment['segment_name']
+        if segment_name not in ['date', 'intro', 'top-stories', 'outro']:
+            segment_list.append(f'podcasts/{date}/' + segment_name + '.mp3')
+
+    intro = produce_intro(f'podcasts/{date}/date.mp3', f'podcasts/{date}/intro.mp3', f'podcasts/{date}/top-stories.mp3', 'podcasts/the-customer-daily-theme-music.mp3', date)
+    segments = produce_segments(segment_list, 'podcasts/the-customer-daily-transition-music.wav', date)
+    outro = produce_outro(f'podcasts/{date}/outro.mp3', 'podcasts/the-customer-daily-theme-music.mp3', date)
+    combine_audio_files(intro, segments, outro, date)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--segment", action="store_true", help="Generate a segment")
-    parser.add_argument("--production", action="store_true", help="Produce an episode")
+    parser.add_argument("--gen", action="store_true", help="Generate audio from script")
+    parser.add_argument("--regen", action="store_true", help="Rerun a particular segment")
+    parser.add_argument("--produce", action="store_true", help="Produce an episode")
+    parser.add_argument("--date", type=str, help="Episode date")
+    parser.add_argument("--segment_name", type=str, help="Segment name to regenerate")
     args = parser.parse_args()
 
-    if args.segment:
-        generate_segment()
-    elif args.production:
-        produce_episode()
+    if args.gen:
+        generate_episode(date = args.date)
+    elif args.regen:
+        generate_episode(date = args.date, rerun = True, rerun_segment = args.segment_name)
+    elif args.produce:
+        produce_episode(date = args.date)
     else:
-        print("No action selected. Please use either --segment or --production flag.")
+        print("No action selected. Please use either --gen, --regen, or --produce flag.")
